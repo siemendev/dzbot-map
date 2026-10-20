@@ -6,7 +6,7 @@ import type { PinFeature } from './vector'
 const MAX_RESULTS = 8
 
 function fold(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+  return text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
 }
 
 function esc(value: string): string {

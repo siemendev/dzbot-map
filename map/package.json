@@ -1,6 +1,6 @@
 {
   "name": "@dzbot/map",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Interactive DayZ maps for any website: tiles, layers, pan and zoom, free to use.",
   "license": "MIT",
   "type": "module",
