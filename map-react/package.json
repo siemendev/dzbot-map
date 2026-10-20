@@ -1,0 +1,35 @@
+{
+  "name": "@dzbot/map-react",
+  "version": "1.0.0",
+  "description": "React bindings for @dzbot/map.",
+  "license": "MIT",
+  "type": "module",
+  "homepage": "https://developers.dzbot.de",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/siemendev/dzbot-map.git"
+  },
+  "bugs": {
+    "url": "https://github.com/siemendev/dzbot-map/issues"
+  },
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "@dzbot/map": "^1.0.0",
+    "react": ">=18",
+    "react-dom": ">=18"
+  }
+}
