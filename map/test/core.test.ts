@@ -4,7 +4,7 @@ import { embedUrl, parseEmbed, parsePin } from '../src/embed'
 import { geoJsonFeatures } from '../src/geojson'
 import { findMap, MAPS, tileUrl } from '../src/maps'
 import { DEFAULT_THRESHOLDS, placeFeatures } from '../src/places'
-import { parseCoordinate } from '../src/search'
+import { builtInProvider, parseCoordinate } from '../src/search'
 import { formatDistance, formatDuration, pathLength, sprintSeconds, VANILLA_STAMINA } from '../src/travel'
 import type { WorldPoint } from '../src/types'
 
@@ -57,6 +57,10 @@ describe('parseCoordinate', () => {
     [' 4512,5;10230 ', [4512.5, 10230]],
   ])('reads %s', (query, expected) => {
     expect(parseCoordinate(query)).toEqual(expected)
+  })
+
+  it('finds places regardless of accents', () => {
+    expect(builtInProvider({ searchables: () => [{ label: 'Žabinka', at: [1, 2] }] } as never).search('zab')).toEqual([{ label: 'Žabinka', at: [1, 2], detail: undefined }])
   })
 
   it('ignores text', () => {
