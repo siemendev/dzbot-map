@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { DzMap, type DzMapOptions, type Frame, type Layer, type MapEvents, type PaneName } from '@dzbot/map'
 
 const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -89,7 +89,8 @@ export function useMapFrame(map: DzMap | null): Frame | null {
   useIsomorphicLayoutEffect(() => {
     if (!map) return
     setFrame(map.getFrame())
-    return map.on('render', setFrame)
+    // Commits inside the map's animation frame: a scheduled update would paint a frame after the tiles moved
+    return map.on('render', (next) => flushSync(() => setFrame(next)))
   }, [map])
   return frame
 }

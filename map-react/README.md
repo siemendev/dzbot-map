@@ -24,4 +24,4 @@ export function Map() {
 }
 ```
 
-Documentation: **https://developers.dzbot.de/reference.html#react**
+Documentation: **https://developers.dzbot.de/map/reference#react**

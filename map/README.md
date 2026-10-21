@@ -22,8 +22,8 @@ Or without a build step:
 <script src="https://map.dzbot.de/sdk/v1/dzmap.js"></script>
 ```
 
-Documentation, live examples and the embed builder: **https://developers.dzbot.de**
+Documentation, live examples and the embed builder: **https://developers.dzbot.de/map/**
 
 The code is MIT licensed. The map tiles and place names it loads from dzbot.de are free to use under the
-[map terms](https://developers.dzbot.de/terms.html): keep the `© dzbot.de` credit visible, don't bulk-download or
+[map terms](https://developers.dzbot.de/map/terms): keep the `© dzbot.de` credit visible, don't bulk-download or
 re-host them. DayZ is a trademark of Bohemia Interactive a.s.; dzbot is not affiliated with Bohemia Interactive.
