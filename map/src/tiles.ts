@@ -126,7 +126,6 @@ export class TileLayer implements Layer {
         img = document.createElement('img')
         img.alt = ''
         img.draggable = false
-        img.decoding = 'async'
         // A missing tile would otherwise show the browser's broken-image icon over the backdrop
         img.onerror = () => {
           img!.style.visibility = 'hidden'
