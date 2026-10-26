@@ -1,19 +1,38 @@
 import type { DzMap, Layer } from './DzMap'
 import { tileUrl } from './maps'
+import { cachedTile, storeTile } from './tileCache'
 import type { Frame } from './types'
 
 const PREFETCH_DELAY_MS = 250
 const PREFETCH_BORDER = 2
 
-// Holding the images keeps their decoded data alive when a tile scrolls out and back in. Never evicted: the
-// number of tiles across all levels is bounded and small.
-const imageCache = new Map<string, HTMLImageElement>()
+const prefetched = new Set<string>()
+// A page whose CSP forbids blob: images shows tiles by their URL only; the first cached tile finds out once
+let blobProbe: Promise<boolean> | undefined
+let blobsBlocked = false
 
-function prefetch(url: string): void {
-  if (imageCache.has(url)) return
-  const img = new Image()
-  img.src = url
-  imageCache.set(url, img)
+function blobsAllowed(blob: Blob): Promise<boolean> {
+  blobProbe ??= new Promise((resolve) => {
+    const probe = new Image()
+    const objectUrl = URL.createObjectURL(blob)
+    const done = (allowed: boolean) => {
+      URL.revokeObjectURL(objectUrl)
+      blobsBlocked = !allowed
+      resolve(allowed)
+    }
+    probe.onload = () => done(true)
+    probe.onerror = () => done(false)
+    probe.src = objectUrl
+  })
+  return blobProbe
+}
+
+function prefetch(source: string, url: string): void {
+  if (prefetched.has(url) || blobsBlocked) return
+  prefetched.add(url)
+  void storeTile(source, url).then((stored) => {
+    if (!stored) new Image().src = url
+  })
 }
 
 export interface TileLayerOptions {
@@ -47,6 +66,7 @@ export class TileLayer implements Layer {
   private map: DzMap | null = null
   private world: HTMLDivElement | null = null
   private images = new Map<string, HTMLImageElement>()
+  private objectUrls = new Map<HTMLImageElement, string>()
   private prefetchTimer: ReturnType<typeof setTimeout> | undefined
   private prefetchKey = ''
 
@@ -67,6 +87,8 @@ export class TileLayer implements Layer {
     clearTimeout(this.prefetchTimer)
     this.world?.remove()
     this.world = null
+    for (const objectUrl of this.objectUrls.values()) URL.revokeObjectURL(objectUrl)
+    this.objectUrls.clear()
     this.images.clear()
     this.map = null
   }
@@ -110,7 +132,6 @@ export class TileLayer implements Layer {
       for (let row = rowMin; row <= rowMax; row++) {
         const url = this.url(tileZoom, col, row)
         if (!url) continue
-        prefetch(url)
         wanted.set(url, { box: place(col, row, tileSize), layer: 1 })
       }
     }
@@ -119,6 +140,9 @@ export class TileLayer implements Layer {
       if (wanted.has(url)) continue
       img.remove()
       this.images.delete(url)
+      const objectUrl = this.objectUrls.get(img)
+      if (objectUrl) URL.revokeObjectURL(objectUrl)
+      this.objectUrls.delete(img)
     }
     for (const [url, { box, layer }] of wanted) {
       let img = this.images.get(url)
@@ -126,14 +150,9 @@ export class TileLayer implements Layer {
         img = document.createElement('img')
         img.alt = ''
         img.draggable = false
-        // A missing tile would otherwise show the browser's broken-image icon over the backdrop
-        img.onerror = () => {
-          img!.style.visibility = 'hidden'
-          imageCache.delete(url)
-        }
-        img.src = url
         this.images.set(url, img)
         world.append(img)
+        this.show(img, url)
       }
       const style = img.style
       style.left = `${box.left}px`
@@ -152,11 +171,34 @@ export class TileLayer implements Layer {
     }
   }
 
+  private show(img: HTMLImageElement, url: string): void {
+    // A missing tile would otherwise show the browser's broken-image icon over the backdrop
+    const hide = () => {
+      img.style.visibility = 'hidden'
+    }
+    img.onerror = hide
+    if (blobsBlocked) {
+      img.src = url
+      return
+    }
+    void cachedTile(this.options.url, url).then(async (blob) => {
+      if (this.images.get(url) !== img) return
+      if (!blob || !(await blobsAllowed(blob))) {
+        img.src = url
+        return
+      }
+      if (this.images.get(url) !== img) return
+      const objectUrl = URL.createObjectURL(blob)
+      this.objectUrls.set(img, objectUrl)
+      img.src = objectUrl
+    })
+  }
+
   private prefetchAround(level: number, colMin: number, colMax: number, rowMin: number, rowMax: number): void {
     const { maxZoom } = this.options
     const fetch = (z: number, x: number, y: number) => {
       const url = this.url(z, x, y)
-      if (url) prefetch(url)
+      if (url) prefetch(this.options.url, url)
     }
     const count = Math.pow(2, level)
     const c0 = Math.max(0, colMin - PREFETCH_BORDER)
