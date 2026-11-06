@@ -3,6 +3,7 @@ import type { DzMap } from './DzMap'
 import { layersControl } from './layers'
 import { MAPS } from './maps'
 import { searchControl } from './search'
+import { tileTypeControl } from './tileType'
 import type { ControlOptions, ControlPosition, ControlsOptions } from './types'
 
 const ICONS = {
@@ -11,7 +12,7 @@ const ICONS = {
   maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
   minimize: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
   type: '<path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/>',
-  layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+  radius: '<path d="M20.34 17.52a10 10 0 1 0-2.82 2.82"/><circle cx="19" cy="19" r="2"/><path d="m13.41 13.41 4.18 4.18"/><circle cx="12" cy="12" r="2"/>',
   ruler: '<path d="M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z"/><path d="m14.5 12.5 2-2"/><path d="m11.5 9.5 2-2"/><path d="m8.5 6.5 2-2"/><path d="m17.5 15.5 2-2"/>',
 }
 
@@ -51,18 +52,8 @@ export class Controls {
       this.cleanups.push(searchControl(map, element, search.providers ?? [], search.placeholder))
     }
 
-    const tileType = resolve(options.tileType, 'top-left')
-    if (tileType && map.tileTypes().length > 1) {
-      const button = this.button(this.group(tileType), 'layers', t.switchTileType, () => {
-        const types = map.tileTypes()
-        map.setTileType(types[(types.indexOf(map.tileType()) + 1) % types.length])
-      })
-      button.dataset.label = ''
-      button.append(document.createTextNode(''))
-      this.refreshers.push(() => {
-        button.lastChild!.textContent = map.tileType() === 'sat' ? t.satellite : t.map
-      })
-    }
+    const tileType = resolve(options.tileType, 'bottom-left')
+    if (tileType && map.tileTypes().length > 1) this.refreshers.push(tileTypeControl(map, this.group(tileType)))
 
     const placeNames = resolve(options.placeNames, 'top-left')
     if (placeNames) {
@@ -126,18 +117,14 @@ export class Controls {
     if (ruler) {
       const { position, className, ...rulerOptions } = ruler
       map.ruler.setOptions(rulerOptions)
-      const group = position || className || !zoomGroup ? this.group(resolve({ position, className }, 'right')) : zoomGroup
-      const button = this.button(group, 'ruler', t.measure, () => map.ruler.toggle())
-      const refresh = () => {
-        const active = map.ruler.isActive()
-        button.setAttribute('aria-pressed', String(active))
-        button.classList.toggle('dzmap-active', active)
-        const label = active ? t.stopMeasuring : t.measure
-        button.title = label
-        button.setAttribute('aria-label', label)
-      }
-      this.refreshers.push(refresh)
-      this.cleanups.push(map.on('tool', refresh))
+      this.toolButton(position || className || !zoomGroup ? this.group(resolve({ position, className }, 'right')) : zoomGroup, 'ruler', map.ruler, t.measure, t.stopMeasuring)
+    }
+
+    const circle = options.circle ? (options.circle === true ? {} : options.circle) : null
+    if (circle) {
+      const { position, className, ...circleOptions } = circle
+      map.circle.setOptions(circleOptions)
+      this.toolButton(position || className || !zoomGroup ? this.group(resolve({ position, className }, 'right')) : zoomGroup, 'radius', map.circle, t.drawCircle, t.stopDrawingCircles)
     }
 
     const coordinates = resolve(options.coordinates, 'bottom-right')
@@ -170,6 +157,20 @@ export class Controls {
     this.elements.push(element)
     if (position && !options?.className && !extraClass) this.groups.set(position, element)
     return element
+  }
+
+  private toolButton(parent: HTMLElement, name: keyof typeof ICONS, tool: { isActive(): boolean; toggle(): void }, start: string, stop: string): void {
+    const button = this.button(parent, name, start, () => tool.toggle())
+    const refresh = () => {
+      const active = tool.isActive()
+      button.setAttribute('aria-pressed', String(active))
+      button.classList.toggle('dzmap-active', active)
+      const label = active ? stop : start
+      button.title = label
+      button.setAttribute('aria-label', label)
+    }
+    this.refreshers.push(refresh)
+    this.cleanups.push(this.map.on('tool', refresh))
   }
 
   private button(parent: HTMLElement, name: keyof typeof ICONS, label: string, onClick: () => void): HTMLButtonElement {

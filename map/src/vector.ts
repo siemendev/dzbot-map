@@ -111,6 +111,7 @@ const HALO = 'rgba(0,0,0,0.85)'
 const CHAR_W = 0.6
 const LINE_H = 1.3
 const LABEL_PAD = 2
+const MIN_POLYGON_LABEL = 9
 
 interface PendingLabel {
   x: number
@@ -183,6 +184,20 @@ export class VectorLayer implements Layer {
     return this.features
   }
 
+  /** The screen outlines of the shapes whose label is drawn in this frame. */
+  labelledAreas(frame: Frame): ScreenPoint[][] {
+    if (!this.visible) return []
+    const areas: ScreenPoint[][] = []
+    for (const feature of this.features) {
+      if (feature.type !== 'polygon' || !feature.label || (feature.labelOpacity ?? 1) <= 0 || feature.points.length < 3) continue
+      if (feature.minZoom !== undefined && frame.zoom < feature.minZoom) continue
+      if (feature.maxZoom !== undefined && frame.zoom > feature.maxZoom) continue
+      const pts = feature.points.map((p) => frame.project(p))
+      if (polygonLabelSize(pts) >= MIN_POLYGON_LABEL) areas.push(pts)
+    }
+    return areas
+  }
+
   /** The features under a spot of the frame, topmost first. Place names are never hit. */
   featuresAt([px, py]: ScreenPoint, frame: Frame): Feature[] {
     const hits: Feature[] = []
@@ -236,8 +251,9 @@ export class VectorLayer implements Layer {
   }
 
   render(frame: Frame): void {
-    if (!this.svg || !this.map) return
-    const showPlaces = this.map.placeNamesVisible()
+    const map = this.map
+    if (!this.svg || !map) return
+    const showPlaces = map.placeNamesVisible()
     const defs: string[] = []
     const background: string[] = []
     const shapes: string[] = []
@@ -265,8 +281,8 @@ export class VectorLayer implements Layer {
           )
           const opacity = feature.labelOpacity ?? 1
           if (feature.label && opacity > 0) {
-            const raw = Math.sqrt((maxX - minX) * (maxY - minY)) * 0.12
-            if (raw < 9) return
+            const raw = polygonLabelSize(pts)
+            if (raw < MIN_POLYGON_LABEL) return
             labels.push({
               x: xs.reduce((s, v) => s + v, 0) / xs.length,
               y: ys.reduce((s, v) => s + v, 0) / ys.length,
@@ -338,7 +354,7 @@ export class VectorLayer implements Layer {
             fade = Math.max(0, Math.min(1, (feature.fadeOutRadiusPx * 1.5 - radiusPx) / (feature.fadeOutRadiusPx * 0.5)))
           }
           const opacity = (feature.opacity ?? 1) * fade
-          if (!visible || opacity <= 0) return
+          if (!visible || opacity <= 0 || map.coversPlaceName([x, y])) return
           background.push(
             `<text x="${n(x)}" y="${n(y)}" font-size="${feature.fontSize ?? 11}" font-weight="600" opacity="${o(opacity)}" style="fill:${esc(cssColor(feature.color, 'white'))}"` +
               ` stroke="${HALO}" stroke-width="3" paint-order="stroke" text-anchor="middle" dominant-baseline="middle">${esc(feature.name)}</text>`,
@@ -403,7 +419,13 @@ export class VectorLayer implements Layer {
   }
 }
 
-function insidePolygon([x, y]: ScreenPoint, pts: ScreenPoint[]): boolean {
+function polygonLabelSize(pts: ScreenPoint[]): number {
+  const xs = pts.map((p) => p[0])
+  const ys = pts.map((p) => p[1])
+  return Math.sqrt((Math.max(...xs) - Math.min(...xs)) * (Math.max(...ys) - Math.min(...ys))) * 0.12
+}
+
+export function insidePolygon([x, y]: ScreenPoint, pts: ScreenPoint[]): boolean {
   let inside = false
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
     const [xi, yi] = pts[i]

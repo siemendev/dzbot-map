@@ -1,7 +1,7 @@
 # @dzbot/map
 
 Interactive DayZ maps for any website — Chernarus, Livonia, Sakhal and Nasdara — with markers, zones, routes,
-GeoJSON, a ruler with sprint time, search and your own layers. Free, no API key.
+GeoJSON, a ruler with sprint time, circles, search and your own layers. Free, no API key.
 
 ```bash
 npm install @dzbot/map
@@ -25,5 +25,5 @@ Or without a build step:
 Documentation, live examples and the embed builder: **https://developers.dzbot.de/map/**
 
 The code is MIT licensed. The map tiles and place names it loads from dzbot.de are free to use under the
-[map terms](https://developers.dzbot.de/map/terms): keep the `© dzbot.de` credit visible, don't bulk-download or
+[map terms](https://dzbot.de/legal/map-sdk-terms): keep the `© dzbot.de` credit visible, don't bulk-download or
 re-host them. DayZ is a trademark of Bohemia Interactive a.s.; dzbot is not affiliated with Bohemia Interactive.

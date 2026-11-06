@@ -1,12 +1,15 @@
 import { describe, expect, it } from 'vitest'
+import { CircleTool } from '../src/circle'
 import { insertAtBestPosition } from '../src/draw'
+import type { DzMap } from '../src/DzMap'
 import { embedUrl, parseEmbed, parsePin } from '../src/embed'
 import { geoJsonFeatures } from '../src/geojson'
 import { findMap, MAPS, tileUrl } from '../src/maps'
 import { DEFAULT_THRESHOLDS, placeFeatures } from '../src/places'
 import { builtInProvider, parseCoordinate } from '../src/search'
 import { formatDistance, formatDuration, pathLength, sprintSeconds, VANILLA_STAMINA } from '../src/travel'
-import type { WorldPoint } from '../src/types'
+import type { Frame, PointerEventData, Tool, WorldPoint } from '../src/types'
+import { VectorLayer } from '../src/vector'
 
 describe('maps', () => {
   it('finds a built-in map by id and by mission', () => {
@@ -46,6 +49,58 @@ describe('travel', () => {
     expect(formatDuration(42)).toBe('42 s')
     expect(formatDuration(272)).toBe('4 min 32 s')
     expect(formatDuration(3720)).toBe('1 h 2 min')
+  })
+})
+
+describe('CircleTool', () => {
+  const setup = () => {
+    let tool: Tool | null = null
+    const map = {
+      getTool: () => tool,
+      setTool: (next: Tool | null) => {
+        const previous = tool
+        tool = next
+        if (previous !== next) previous?.deactivate?.()
+      },
+      requestRender: () => {},
+    } as unknown as DzMap
+    const circles = new CircleTool(map)
+    const click = (world: WorldPoint) => circles.click({ world } as PointerEventData)
+    return { circles, click }
+  }
+
+  it('sets the centre, then the edge', () => {
+    const { circles, click } = setup()
+    circles.start()
+    click([100, 100])
+    expect(circles.getCircles()).toEqual([])
+    click([130, 140])
+    expect(circles.getCircles()).toEqual([{ center: [100, 100], edge: [130, 140], radius: 50 }])
+  })
+
+  it('undoes the open centre first, then the last circle, and clears all when stopped', () => {
+    const { circles, click } = setup()
+    circles.start()
+    click([0, 0])
+    click([0, 10])
+    click([50, 50])
+    circles.undo()
+    expect(circles.getCircles()).toHaveLength(1)
+    circles.undo()
+    expect(circles.getCircles()).toEqual([])
+    click([0, 0])
+    click([0, 10])
+    circles.stop()
+    expect(circles.isActive()).toBe(false)
+    expect(circles.getCircles()).toEqual([])
+  })
+
+  it('ignores a circle without a radius', () => {
+    const { circles, click } = setup()
+    circles.start()
+    click([5, 5])
+    click([5, 5])
+    expect(circles.getCircles()).toEqual([])
   })
 })
 
@@ -152,5 +207,23 @@ describe('placeFeatures', () => {
 
   it('leaves out other kinds of places', () => {
     expect(placeFeatures([{ name: 'Alarm', x: 0, z: 0, type: 'base' }])).toEqual([])
+  })
+})
+
+describe('labelledAreas', () => {
+  const frame = { zoom: 3, scale: 1, project: (p: WorldPoint) => p } as unknown as Frame
+  const square: WorldPoint[] = [[0, 0], [200, 0], [200, 200], [0, 200]]
+
+  it('lists the zones whose name is drawn, so place names under them hide', () => {
+    const layer = new VectorLayer([
+      { type: 'polygon', points: square, label: 'Safezone' },
+      { type: 'polygon', points: square },
+      { type: 'polygon', points: square, label: 'Faded', labelOpacity: 0 },
+      { type: 'polygon', points: [[0, 0], [20, 0], [20, 20]], label: 'Too small for a label' },
+      { type: 'polygon', points: square, label: 'Later', minZoom: 4 },
+    ])
+    expect(layer.labelledAreas(frame)).toEqual([square])
+    layer.setVisible(false)
+    expect(layer.labelledAreas(frame)).toEqual([])
   })
 })

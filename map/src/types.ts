@@ -87,10 +87,12 @@ export interface ControlsOptions {
   fullscreen?: boolean | ControlOptions
   /** Toggles place names; shown only while the map has place names. */
   placeNames?: boolean | ControlOptions
-  /** Switches between tile types (map / satellite); shown only when the source has more than one. */
+  /** A thumbnail of the other tile type (map / satellite) that switches to it; default bottom left, shown only when the source has more than one. */
   tileType?: boolean | ControlOptions
   /** Measures routes with distance and sprint time; sits with the zoom buttons unless placed. */
   ruler?: boolean | (ControlOptions & { stamina?: Stamina; staminaSource?: string; panelClassName?: string })
+  /** Draws circles with their radius; sits below the ruler unless placed. */
+  circle?: boolean | (ControlOptions & { panelClassName?: string })
   /** The coordinate under the mouse, Ctrl/Cmd+C copies it; hidden on touch screens. */
   coordinates?: boolean | ControlOptions
   /** Searches place names, coordinates, labelled features and your providers. */
@@ -115,6 +117,8 @@ export interface DzMapOptions {
   map?: string
   /** Your own tiles instead of a built-in map. */
   tiles?: TileSource
+  /** The tile type to open with (`top`, `sat`); without it, or when the tiles lack it, the tiles' first type. */
+  tileType?: string
   center?: WorldPoint
   /** A zoom level, or `cover` to fill the frame edge to edge with the map. */
   zoom?: number | 'cover'

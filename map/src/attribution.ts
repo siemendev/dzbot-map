@@ -25,7 +25,7 @@ const HOST_STYLE = inline(['right:0', 'bottom:0', 'left:auto', 'top:auto', 'widt
 const LOCK_STYLE = inline(['inset:0'])
 
 const CSS = `
-.credit{display:block;padding:2px 6px;border-top-left-radius:3px;background:rgba(9,9,11,.78);color:#f4f4f5;font:500 10px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em;white-space:nowrap;cursor:default}
+.credit{display:block;padding:2px 6px;border-top-left-radius:3px;background:rgba(9,9,11,.78);color:#f4f4f5;font:500 10px/1.4 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.02em;text-align:right;cursor:default}
 .credit a{color:inherit;font:inherit;text-decoration:none;cursor:pointer}
 .credit a:hover{text-decoration:underline}
 .lock{display:flex;align-items:center;justify-content:center;width:100%;height:100%;padding:24px;box-sizing:border-box;background:rgba(9,9,11,.94);color:#f4f4f5;font:500 14px/1.5 ui-sans-serif,system-ui,sans-serif;text-align:center}
@@ -35,7 +35,7 @@ const CSS = `
 function shadow(doc: Document, style: string, html: string): HTMLElement {
   const host = doc.createElement('dzmap-credit')
   host.setAttribute('style', style)
-  host.setAttribute('aria-label', 'Map © dzbot.de')
+  host.setAttribute('aria-label', 'Map © dzbot.de, DayZ © Bohemia Interactive a.s.')
   const root = host.attachShadow({ mode: 'closed' })
   root.innerHTML = `<style>${CSS}</style>${html}`
   return host
@@ -70,7 +70,7 @@ export class Attribution {
 
   private create(): HTMLElement {
     const year = new Date().getFullYear()
-    return shadow(this.container.ownerDocument, HOST_STYLE, `<span class="credit">&copy; ${year} <a href="https://dzbot.de" target="_blank" rel="noopener">dzbot.de</a></span>`)
+    return shadow(this.container.ownerDocument, HOST_STYLE, `<span class="credit">&copy; ${year} <a href="https://dzbot.de" target="_blank" rel="noopener">dzbot.de</a> · DayZ © Bohemia Interactive a.s.</span>`)
   }
 
   private observe(): void {

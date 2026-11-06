@@ -7,6 +7,7 @@ import { findMap } from './maps'
 import { MapObject, ObjectLayer } from './objects'
 import { Draw } from './draw'
 import { Ruler } from './ruler'
+import { CircleTool } from './circle'
 import { fetchPlaceNames, placeFeatures } from './places'
 import { injectStyles } from './style'
 import { TileLayer } from './tiles'
@@ -24,7 +25,7 @@ import type {
   View,
   WorldPoint,
 } from './types'
-import { VectorLayer, type CircleFeature, type Feature, type LineFeature, type PinFeature, type PointFeature, type PolygonFeature } from './vector'
+import { insidePolygon, VectorLayer, type CircleFeature, type Feature, type LineFeature, type PinFeature, type PointFeature, type PolygonFeature } from './vector'
 
 type Options<F extends Feature, Omitted extends keyof F> = Omit<F, 'type' | Omitted> & { draggable?: boolean }
 
@@ -106,6 +107,7 @@ export class DzMap extends Emitter<MapEvents> {
   private readonly baseTiles: TileLayer
   private readonly placeLayer = new VectorLayer([], 'vector')
   private layers: Layer[] = []
+  private labelledAreas: ScreenPoint[][] = []
   private dragSources = new Set<() => readonly DragTarget[]>()
   private frameRequest: number | null = null
   private lastMove = ''
@@ -115,6 +117,7 @@ export class DzMap extends Emitter<MapEvents> {
   private objectLayer: ObjectLayer | null = null
   private tool: Tool | null = null
   private rulerTool: Ruler | null = null
+  private circleTool: CircleTool | null = null
   private drawTools: Draw | null = null
 
   private zoomAnimation: number | null = null
@@ -139,7 +142,7 @@ export class DzMap extends Emitter<MapEvents> {
     this.definition = options.tiles ? null : (findMap(options.map ?? 'nasdara') ?? null)
     if (!options.tiles && !this.definition) throw new Error(`DzMap: unknown map "${options.map}"`)
     this.source = options.tiles ?? this.definition!.tiles
-    this.type = this.source.types?.[0] ?? 'top'
+    this.type = options.tileType && this.tileTypes().includes(options.tileType) ? options.tileType : this.tileTypes()[0]
 
     injectStyles(element.ownerDocument)
     if (element.hasAttribute('data-dzmap-ready')) throw new Error('DzMap: this element already holds a map')
@@ -427,6 +430,12 @@ export class DzMap extends Emitter<MapEvents> {
     return this.rulerTool
   }
 
+  /** The circle tool, also without its control: `map.circle.start()` from your own button. */
+  get circle(): CircleTool {
+    if (!this.circleTool) this.circleTool = this.addLayer(new CircleTool(this))
+    return this.circleTool
+  }
+
   /** Editing tools: `map.draw.polygon(points, { onChange })`. */
   get draw(): Draw {
     this.drawTools ??= new Draw(this)
@@ -439,6 +448,11 @@ export class DzMap extends Emitter<MapEvents> {
 
   locale(): string {
     return this.options.locale ?? 'en'
+  }
+
+  /** Whether a labelled shape, like a zone with its name, lies over this spot and hides the place name there. */
+  coversPlaceName(at: ScreenPoint): boolean {
+    return this.labelledAreas.some((area) => insidePolygon(at, area))
   }
 
   /** Whether the map has place names to show. */
@@ -552,6 +566,7 @@ export class DzMap extends Emitter<MapEvents> {
     for (const layer of [...this.layers]) this.removeLayer(layer)
     this.objectLayer = null
     this.rulerTool = null
+    this.circleTool = null
     this.placeLayer.onRemove()
     this.baseTiles.onRemove()
     this.viewport.remove()
@@ -638,6 +653,7 @@ export class DzMap extends Emitter<MapEvents> {
     if (this.destroyed) return
     const frame = this.getFrame()
     this.baseTiles.render(frame)
+    this.labelledAreas = this.layers.flatMap((layer) => (layer instanceof VectorLayer ? layer.labelledAreas(frame) : []))
     this.placeLayer.render(frame)
     for (const layer of this.layers) layer.render?.(frame)
     this.controls.refresh()

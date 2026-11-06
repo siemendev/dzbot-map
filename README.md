@@ -7,5 +7,4 @@ Interactive DayZ maps for any website — the SDK behind [map.dzbot.de](https://
 
 Documentation, live examples and the embed builder: **https://developers.dzbot.de/map/**
 
-This repository mirrors the code that dzbot runs on its own maps; it is developed in dzbot and synced on every
-release. Issues are welcome here; pull requests are ported by hand.
+This is the code dzbot runs on its own maps. Issues and pull requests are welcome; npm releases are tagged `vX.Y.Z`. See [CONTRIBUTING.md](CONTRIBUTING.md).
