@@ -5,13 +5,18 @@ Issues and pull requests are welcome. Questions are also welcome on the
 
 ## Develop
 
-You need Node.js 20 or newer.
+You need Node.js 22 or newer.
 
 ```bash
 npm install
-npm run build   # map/dist and map-react/dist, including the script-tag bundle map/dist/dzmap.js
+npm run build            # map/dist and map-react/dist, including the script-tag bundle map/dist/dzmap.js
 npm test
+npm run typecheck
+npm run lint
+npm run check:packages   # after a build: package.json and the types resolve for every consumer (publint, attw)
 ```
+
+CI runs all of these on every pull request.
 
 A version raised in `map/package.json` or `map-react/package.json` is published to npm and tagged when it reaches
 `main`.
