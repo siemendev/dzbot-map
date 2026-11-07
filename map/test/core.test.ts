@@ -122,6 +122,12 @@ describe('parseCoordinate', () => {
     expect(parseCoordinate('chernogorsk')).toBeNull()
     expect(parseCoordinate('4512')).toBeNull()
   })
+
+  it('stays fast on long runs of spaces', () => {
+    const started = performance.now()
+    expect(parseCoordinate('9' + ' '.repeat(50_000) + 'x')).toBeNull()
+    expect(performance.now() - started).toBeLessThan(100)
+  })
 })
 
 describe('insertAtBestPosition', () => {

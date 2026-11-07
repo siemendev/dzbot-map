@@ -15,7 +15,7 @@ function esc(value: string): string {
 
 /** `4512 10230`, `4512, 10230` or `4512 / 10230` as a spot in world metres. */
 export function parseCoordinate(query: string): WorldPoint | null {
-  const match = /^\s*(-?\d+(?:[.,]\d+)?)\s*(?:[,/;]|\s)\s*(-?\d+(?:[.,]\d+)?)\s*$/.exec(query)
+  const match = /^\s*(-?\d+(?:[.,]\d+)?)(?:\s*[,/;]\s*|\s+)(-?\d+(?:[.,]\d+)?)\s*$/.exec(query)
   if (!match) return null
   const [x, z] = [Number(match[1].replace(',', '.')), Number(match[2].replace(',', '.'))]
   return Number.isFinite(x) && Number.isFinite(z) ? [x, z] : null
