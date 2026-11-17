@@ -13,12 +13,12 @@
     "@arethetypeswrong/cli": "^0.18.5",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "oxlint": "^1.92.0",
+    "oxlint": "^1.94.0",
     "publint": "^0.3.25",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "typescript": "~5.9.3",
-    "vite": "^7.3.1",
-    "vitest": "^5.0.5"
+    "vite": "^8.3.8",
+    "vitest": "^5.1.0"
   }
 }
